@@ -1,44 +1,46 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, Alert, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Image, Alert, StyleSheet, ScrollView } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import RNPickerSelect from "react-native-picker-select";
 
 const UploadScreen = () => {
-  const [image, setImage] = useState(null);
+  const [images, setImages] = useState([]);
   const [cost, setCost] = useState("");
   const [size, setSize] = useState("");
   const [category, setCategory] = useState("");
 
   const backendURL = "http://localhost:5000"; // ✅ Backend & frontend on the same server
 
-  // Function to pick an image
-  const pickImage = async () => {
+  // Function to pick multiple images
+  const pickImages = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
+      allowsMultipleSelection: true, // Allow multiple images
       quality: 1,
     });
 
-    if (!result.canceled && result.assets.length > 0) {
-      setImage(result.assets[0].uri);
+    if (!result.canceled) {
+      setImages(result.assets.map((asset) => asset.uri));
     }
   };
 
-  // Function to upload image
-  const uploadImage = async () => {
-    if (!image || !cost || !size || !category) {
-      Alert.alert("Error", "Please fill all fields and select an image");
+  // Function to upload images
+  const uploadImages = async () => {
+    if (images.length === 0 || !cost || !size || !category) {
+      Alert.alert("Error", "Please fill all fields and select at least one image");
       return;
     }
 
     const formData = new FormData();
-    formData.append("image", {
-      uri: image,
-      name: "upload.jpg",
-      type: "image/jpeg",
+    images.forEach((imageUri, index) => {
+      formData.append("images", {
+        uri: imageUri,
+        name: `upload-${index}.jpg`,
+        type: "image/jpeg",
+      });
     });
+
     formData.append("cost", cost);
     formData.append("size", size);
     formData.append("category", category);
@@ -48,8 +50,8 @@ const UploadScreen = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      Alert.alert("Success", "Image uploaded successfully");
-      setImage(null);
+      Alert.alert("Success", "Images uploaded successfully");
+      setImages([]);
       setCost("");
       setSize("");
       setCategory("");
@@ -60,13 +62,17 @@ const UploadScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Upload Product</Text>
 
-      {image && <Image source={{ uri: image }} style={styles.image} />}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {images.map((uri, index) => (
+          <Image key={index} source={{ uri }} style={styles.image} />
+        ))}
+      </ScrollView>
 
-      <TouchableOpacity style={styles.button} onPress={pickImage}>
-        <Text style={styles.buttonText}>Pick an Image</Text>
+      <TouchableOpacity style={styles.button} onPress={pickImages}>
+        <Text style={styles.buttonText}>Pick Images</Text>
       </TouchableOpacity>
 
       <TextInput
@@ -96,10 +102,10 @@ const UploadScreen = () => {
         style={pickerSelectStyles}
       />
 
-      <TouchableOpacity style={styles.uploadButton} onPress={uploadImage}>
+      <TouchableOpacity style={styles.uploadButton} onPress={uploadImages}>
         <Text style={styles.buttonText}>Upload</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -107,7 +113,7 @@ export default UploadScreen;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
@@ -119,9 +125,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   image: {
-    width: 200,
-    height: 200,
-    marginBottom: 10,
+    width: 100,
+    height: 100,
+    marginRight: 10,
     borderRadius: 10,
   },
   button: {

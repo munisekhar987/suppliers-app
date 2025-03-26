@@ -37,20 +37,19 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Upload API
-app.post("/upload", upload.single("image"), async (req, res) => {
+// Upload API (Multiple Files)
+app.post("/upload", upload.array("images", 10), async (req, res) => {
   try {
     const { cost, size, category } = req.body;
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: "No files uploaded" });
     }
-    
-    const imagePath = "/uploads/" + req.file.filename; // Path to serve locally
 
-    // Insert into PostgreSQL
+    const imagePaths = req.files.map((file) => "/uploads/" + file.filename);
+
     const result = await pool.query(
-      "INSERT INTO products (image_path, cost, size, category, uploaded_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING *",
-      [imagePath, cost, size, category]
+      "INSERT INTO products (image_paths, cost, size, category, uploaded_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING *",
+      [JSON.stringify(imagePaths), cost, size, category]
     );
 
     res.json({ success: true, data: result.rows[0] });
