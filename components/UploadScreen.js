@@ -10,7 +10,7 @@ const UploadScreen = () => {
   const [size, setSize] = useState("");
   const [category, setCategory] = useState("");
 
-  const backendURL = "http://your-backend-ip:5000"; // Replace with your backend URL
+  const backendURL = "http://localhost:5000"; // ✅ Backend & frontend on the same server
 
   // Function to pick an image
   const pickImage = async () => {
@@ -21,7 +21,7 @@ const UploadScreen = () => {
       quality: 1,
     });
 
-    if (!result.canceled) {
+    if (!result.canceled && result.assets.length > 0) {
       setImage(result.assets[0].uri);
     }
   };
@@ -54,7 +54,7 @@ const UploadScreen = () => {
       setSize("");
       setCategory("");
     } catch (error) {
-      console.error(error);
+      console.error("Upload Error:", error);
       Alert.alert("Error", "Upload failed");
     }
   };
